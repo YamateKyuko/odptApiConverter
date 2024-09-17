@@ -1,6 +1,6 @@
 export const initial = {
     "fileType": "OuDia.1.07",
-    "fileTypeAppComment": "CloudDia 1.0",
+    "fileTypeAppComment": "odptApiConverter 1.0",
     "displayProperty": {
         "timetableFont": [
             {

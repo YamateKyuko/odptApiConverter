@@ -1,4 +1,4 @@
-# ODPT api Convertor
+# ODPT api Converter
 
 このソースコードは、あなたのPCとODPTのサーバに負担をかけるものです。  
 oudファイルの構造に合致する文字列が偶然出力される可能性はありますが、  

@@ -2,7 +2,7 @@ import { template, template_diagram, template_station, template_train, template_
 
 export const initial: template = {
   "fileType": "OuDia.1.07",
-  "fileTypeAppComment": "CloudDia 1.0",
+  "fileTypeAppComment": "odptApiConverter 1.0",
   "displayProperty": {
     "timetableFont": [
       {

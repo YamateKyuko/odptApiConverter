@@ -1,7 +1,7 @@
 import { ColorToOudiaString, getTimetableStyle, numberToTimeString } from "./Util.js";
 function toOudiaString(data) {
     console.log(data);
-    const value = `FileType=OuDia.1.02\n${railwayToOudiaString(data.railway)}${displayPropertyToOudiaString()}FileTypeAppComment=CloudDia v0.4.3\n`;
+    const value = `FileType=OuDia.1.02\n${railwayToOudiaString(data.railway)}${displayPropertyToOudiaString()}FileTypeAppComment=odptApiConverter v0.4.3\n`;
     return value;
 }
 function railwayToOudiaString(railway) {
