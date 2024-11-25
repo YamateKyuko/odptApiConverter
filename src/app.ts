@@ -84,17 +84,20 @@ async function getCalendarByID(calendarID: string): Promise<template_Odpt_Calend
   return json[0];
 }
 
-async function getTrainTimetableByID(railwayID: string, railDirection: string, trainType: string): Promise<template_Odpt_TrainTimetable[]> {
+async function getTrainTimetableByID(railwayID: string, trainType: string): Promise<template_Odpt_TrainTimetable[]> {
   const link: string = `api/v4/odpt:TrainTimetable`;
   const params = {
     "odpt:railway": railwayID,
-    "odpt:railDirection": railDirection,
+    // "odpt:railDirection": railDirection,
     "odpt:trainType": trainType,
     "acl:consumerKey": accessKey,
   };
   const query = new URLSearchParams(params);
   const response = await fetch(`${url}${link}?${query}`);
   const json: template_Odpt_TrainTimetable[] = await response.json();
+  if (json.length == 1000) {
+    console.log("error: too many train to get.");
+  }
   return json;
 }
 
@@ -104,17 +107,13 @@ async function setDiagrams(
   setPlatform: (stationID: string, platformNumber: string) => number,
   getRailDirectionIndex: (railDirectionID: string) => number,
   getTrainTypeIndex: (trainTypeID: string) => number,
-  railway: template_Odpt_Railway,
-  trainTypeIDs: string[] = [],
+  trainTypeIDs: string[],
 ): Promise<template_diagram[]> {
   const json: template_Odpt_TrainTimetable[] = [];
   for (const trainTypeID of trainTypeIDs) {
-    json.push(...await getTrainTimetableByID(railwayID, railway["odpt:ascendingRailDirection"] ?? "", trainTypeID));
-    json.push(...await getTrainTimetableByID(railwayID, railway["odpt:descendingRailDirection"] ?? "", trainTypeID));
+    json.push(...await getTrainTimetableByID(railwayID, trainTypeID));
+    json.push(...await getTrainTimetableByID(railwayID, trainTypeID));
   }
-  // const asc = await getTrainTimetableByID(railwayID, railway["odpt:ascendingRailDirection"] ?? "");
-  // const des = await getTrainTimetableByID(railwayID, railway["odpt:descendingRailDirection"] ?? "");
-  // const json = [...asc, ...des];
 
   const calendarIDs: string[] = [];
   const diagrams: template_diagram[] = [];
@@ -258,7 +257,7 @@ async function main(railwayID: string): Promise<template> {
     return trainTypeIDs.indexOf(trainTypeID);
   }
 
-  data.railway.diagrams = await setDiagrams(railway["owl:sameAs"], stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex, railway);
+  data.railway.diagrams = await setDiagrams(railway["owl:sameAs"], stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex, trainTypeIDs);
 
   for (const railDirectionID of railDirectionIDs) {
     const railDirection: template_Odpt_RailDirection = await getRailDirectionByID(railDirectionID);
@@ -273,11 +272,13 @@ async function main(railwayID: string): Promise<template> {
 }
 
 async function test() {
-  if (false) {
-    const data: template = await main("つくばエクスプレス");
-    console.log(data);
-    
-  }
+  // if (false) {
+    // const data: template = await main("つくばエクスプレス");
+    // console.log(data);
+    // const str = toOudString(data);
+
+    // console.log(str);
+  // }
 
   document.getElementById("button")?.addEventListener("click", async () => {
     url = window.prompt("APIのURL:", "https://api.odpt.org/") ?? "";
