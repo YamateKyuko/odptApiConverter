@@ -49,16 +49,16 @@ function setStations(stations) {
         });
     });
 }
-function getTrainTypeByID(trainTypeID) {
+function getTrainTypeByID(operatorID) {
     return __awaiter(this, void 0, void 0, function* () {
         const params = {
-            "owl:sameAs": trainTypeID,
+            "odpt:operator": operatorID,
             "acl:consumerKey": accessKey,
         };
         const query = new URLSearchParams(params);
         const response = yield fetch(`${url}api/v4/odpt:TrainType?${query}`);
         const json = yield response.json();
-        return json[0];
+        return json;
     });
 }
 function getRailDirectionByID(railDirectionID) {
@@ -87,17 +87,29 @@ function getCalendarByID(calendarID) {
         return json[0];
     });
 }
-function setDiagrams(railwayID, stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex) {
+function getTrainTimetableByID(railwayID, railDirection, trainType) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         const link = `api/v4/odpt:TrainTimetable`;
         const params = {
             "odpt:railway": railwayID,
+            "odpt:railDirection": railDirection,
+            "odpt:trainType": trainType,
             "acl:consumerKey": accessKey,
         };
         const query = new URLSearchParams(params);
         const response = yield fetch(`${url}${link}?${query}`);
         const json = yield response.json();
+        return json;
+    });
+}
+function setDiagrams(railwayID_1, stationIDs_1, setPlatform_1, getRailDirectionIndex_1, getTrainTypeIndex_1, railway_1) {
+    return __awaiter(this, arguments, void 0, function* (railwayID, stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex, railway, trainTypeIDs = []) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+        const json = [];
+        for (const trainTypeID of trainTypeIDs) {
+            json.push(...yield getTrainTimetableByID(railwayID, (_a = railway["odpt:ascendingRailDirection"]) !== null && _a !== void 0 ? _a : "", trainTypeID));
+            json.push(...yield getTrainTimetableByID(railwayID, (_b = railway["odpt:descendingRailDirection"]) !== null && _b !== void 0 ? _b : "", trainTypeID));
+        }
         const calendarIDs = [];
         const diagrams = [];
         for (const trainTimetable of json) {
@@ -121,14 +133,14 @@ function setDiagrams(railwayID, stationIDs, setPlatform, getRailDirectionIndex, 
                     "track": trainTimetableObject["odpt:platformNumber"] ? setPlatform(stationIDjudge(trainTimetableObject), trainTimetableObject["odpt:platformNumber"]) : 0,
                 } : null;
             });
-            let calendarIndex = calendarIDs.indexOf((_a = trainTimetable["odpt:calendar"]) !== null && _a !== void 0 ? _a : "");
+            let calendarIndex = calendarIDs.indexOf((_c = trainTimetable["odpt:calendar"]) !== null && _c !== void 0 ? _c : "");
             if (calendarIndex == -1) {
-                calendarIDs.push((_b = trainTimetable["odpt:calendar"]) !== null && _b !== void 0 ? _b : "");
+                calendarIDs.push((_d = trainTimetable["odpt:calendar"]) !== null && _d !== void 0 ? _d : "");
                 calendarIndex = calendarIDs.length - 1;
-                const calendar = yield getCalendarByID((_c = trainTimetable["odpt:calendar"]) !== null && _c !== void 0 ? _c : "");
-                diagrams.push(Object.assign(Object.assign({}, initial_diagram), { "name": (_e = (_d = (calendar["odpt:calendarTitle"] && calendar["odpt:calendarTitle"]["ja"])) !== null && _d !== void 0 ? _d : calendar["dc:title"]) !== null && _e !== void 0 ? _e : calendar["owl:sameAs"], "trains": [[], []] }));
+                const calendar = yield getCalendarByID((_e = trainTimetable["odpt:calendar"]) !== null && _e !== void 0 ? _e : "");
+                diagrams.push(Object.assign(Object.assign({}, initial_diagram), { "name": (_g = (_f = (calendar["odpt:calendarTitle"] && calendar["odpt:calendarTitle"]["ja"])) !== null && _f !== void 0 ? _f : calendar["dc:title"]) !== null && _g !== void 0 ? _g : calendar["owl:sameAs"], "trains": [[], []] }));
             }
-            const railDirectionIndex = getRailDirectionIndex((_f = trainTimetable["odpt:railDirection"]) !== null && _f !== void 0 ? _f : "");
+            const railDirectionIndex = getRailDirectionIndex((_h = trainTimetable["odpt:railDirection"]) !== null && _h !== void 0 ? _h : "");
             railDirectionIndex == 1 && _datas.reverse();
             const getFirstStationIndex = () => {
                 return _datas.findIndex((val) => val !== null);
@@ -136,7 +148,7 @@ function setDiagrams(railwayID, stationIDs, setPlatform, getRailDirectionIndex, 
             const getTerminalStationIndex = () => {
                 return _datas.findLastIndex((val) => val !== null);
             };
-            diagrams[calendarIndex].trains[railDirectionIndex].push(Object.assign(Object.assign({}, initial_train), { "direction": railDirectionIndex, "type": getTrainTypeIndex((_g = trainTimetable["odpt:trainType"]) !== null && _g !== void 0 ? _g : ""), "number": (_l = (_h = trainTimetable["odpt:trainNumber"]) !== null && _h !== void 0 ? _h : (_k = (_j = trainTimetable["odpt:trainName"]) === null || _j === void 0 ? void 0 : _j[0]) === null || _k === void 0 ? void 0 : _k["ja"]) !== null && _l !== void 0 ? _l : "", "note": trainTimetable["odpt:note"] ? trainTimetable["odpt:note"]["ja"] : null, "timetable": {
+            diagrams[calendarIndex].trains[railDirectionIndex].push(Object.assign(Object.assign({}, initial_train), { "direction": railDirectionIndex, "type": getTrainTypeIndex((_j = trainTimetable["odpt:trainType"]) !== null && _j !== void 0 ? _j : ""), "number": (_o = (_k = trainTimetable["odpt:trainNumber"]) !== null && _k !== void 0 ? _k : (_m = (_l = trainTimetable["odpt:trainName"]) === null || _l === void 0 ? void 0 : _l[0]) === null || _m === void 0 ? void 0 : _m["ja"]) !== null && _o !== void 0 ? _o : "", "note": trainTimetable["odpt:note"] ? trainTimetable["odpt:note"]["ja"] : null, "timetable": {
                     "firstStationIndex": getFirstStationIndex(),
                     "terminalStationIndex": getTerminalStationIndex(),
                     "_data": _datas,
@@ -147,7 +159,7 @@ function setDiagrams(railwayID, stationIDs, setPlatform, getRailDirectionIndex, 
 }
 function main(railwayID) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b;
         const data = initial;
         const railway = yield getRailway(railwayID);
         const stationOrders = railway["odpt:stationOrder"];
@@ -181,24 +193,21 @@ function main(railwayID) {
         railway["odpt:ascendingRailDirection"] && getRailDirectionIndex(railway["odpt:ascendingRailDirection"]);
         railway["odpt:descendingRailDirection"] && getRailDirectionIndex(railway["odpt:descendingRailDirection"]);
         const trainTypeIDs = [];
+        const trainTypes = yield getTrainTypeByID(railway["odpt:operator"]);
+        trainTypes.map((trainType) => {
+            var _a;
+            trainTypeIDs.push(trainType["owl:sameAs"]);
+            data.railway.trainTypes.push(Object.assign(Object.assign({}, initial_trainType), { "name": (_a = trainType["dc:title"]) !== null && _a !== void 0 ? _a : (trainType["odpt:trainTypeTitle"] ? trainType["odpt:trainTypeTitle"]["ja"] : "") }));
+        });
         const getTrainTypeIndex = (trainTypeID) => {
-            const trainTypeIndex = trainTypeIDs.findIndex((val) => val === trainTypeID);
-            if (trainTypeIndex === -1) {
-                trainTypeIDs.push(trainTypeID);
-                return 0;
-            }
-            return trainTypeIndex;
+            return trainTypeIDs.indexOf(trainTypeID);
         };
-        data.railway.diagrams = yield setDiagrams(railway["owl:sameAs"], stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex);
+        data.railway.diagrams = yield setDiagrams(railway["owl:sameAs"], stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex, railway);
         for (const railDirectionID of railDirectionIDs) {
             const railDirection = yield getRailDirectionByID(railDirectionID);
             data.railway.directionName.push((_a = railDirection["dc:title"]) !== null && _a !== void 0 ? _a : (railDirection["odpt:railDirectionTitle"] ? railDirection["odpt:railDirectionTitle"]["ja"] : ""));
         }
-        for (const trainTypeID of trainTypeIDs) {
-            const trainType = yield getTrainTypeByID(trainTypeID);
-            data.railway.trainTypes.push(Object.assign(Object.assign({}, initial_trainType), { "name": (_b = trainType["dc:title"]) !== null && _b !== void 0 ? _b : (trainType["odpt:trainTypeTitle"] ? trainType["odpt:trainTypeTitle"]["ja"] : "") }));
-        }
-        data.railway.name = (_c = railway["dc:title"]) !== null && _c !== void 0 ? _c : (railway["dc:railwayTitle"] ? railway["dc:railwayTitle"]["ja"] : "");
+        data.railway.name = (_b = railway["dc:title"]) !== null && _b !== void 0 ? _b : (railway["dc:railwayTitle"] ? railway["dc:railwayTitle"]["ja"] : "");
         return data;
     });
 }
