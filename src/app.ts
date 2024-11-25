@@ -47,15 +47,17 @@ async function setStations(stations: template_Odpt_Station[]): Promise<template_
   });
 }
 
-async function getTrainTypeByID(trainTypeID: string): Promise<template_Odpt_TrainType> {
+async function getTrainTypeByID(operatorID: string): Promise<template_Odpt_TrainType[]> {
+  // trainTypeID: string[]
   const params = {
-    "owl:sameAs": trainTypeID,
+    "odpt:operator": operatorID,
+    // "owl:sameAs": trainTypeID.join(","),
     "acl:consumerKey": accessKey,
   };
   const query = new URLSearchParams(params);
   const response = await fetch(`${url}api/v4/odpt:TrainType?${query}`);
   const json: template_Odpt_TrainType[] = await response.json();
-  return json[0];
+  return json;
 }
 
 async function getRailDirectionByID(railDirectionID: string): Promise<template_Odpt_RailDirection> {
@@ -82,21 +84,37 @@ async function getCalendarByID(calendarID: string): Promise<template_Odpt_Calend
   return json[0];
 }
 
+async function getTrainTimetableByID(railwayID: string, railDirection: string, trainType: string): Promise<template_Odpt_TrainTimetable[]> {
+  const link: string = `api/v4/odpt:TrainTimetable`;
+  const params = {
+    "odpt:railway": railwayID,
+    "odpt:railDirection": railDirection,
+    "odpt:trainType": trainType,
+    "acl:consumerKey": accessKey,
+  };
+  const query = new URLSearchParams(params);
+  const response = await fetch(`${url}${link}?${query}`);
+  const json: template_Odpt_TrainTimetable[] = await response.json();
+  return json;
+}
+
 async function setDiagrams(
   railwayID: string,
   stationIDs: string[],
   setPlatform: (stationID: string, platformNumber: string) => number,
   getRailDirectionIndex: (railDirectionID: string) => number,
   getTrainTypeIndex: (trainTypeID: string) => number,
+  railway: template_Odpt_Railway,
+  trainTypeIDs: string[] = [],
 ): Promise<template_diagram[]> {
-  const link: string = `api/v4/odpt:TrainTimetable`;
-  const params = {
-    "odpt:railway": railwayID,
-    "acl:consumerKey": accessKey,
-  };
-  const query = new URLSearchParams(params);
-  const response = await fetch(`${url}${link}?${query}`);
-  const json: template_Odpt_TrainTimetable[] = await response.json();
+  const json: template_Odpt_TrainTimetable[] = [];
+  for (const trainTypeID of trainTypeIDs) {
+    json.push(...await getTrainTimetableByID(railwayID, railway["odpt:ascendingRailDirection"] ?? "", trainTypeID));
+    json.push(...await getTrainTimetableByID(railwayID, railway["odpt:descendingRailDirection"] ?? "", trainTypeID));
+  }
+  // const asc = await getTrainTimetableByID(railwayID, railway["odpt:ascendingRailDirection"] ?? "");
+  // const des = await getTrainTimetableByID(railwayID, railway["odpt:descendingRailDirection"] ?? "");
+  // const json = [...asc, ...des];
 
   const calendarIDs: string[] = [];
   const diagrams: template_diagram[] = [];
@@ -222,30 +240,32 @@ async function main(railwayID: string): Promise<template> {
   railway["odpt:ascendingRailDirection"] && getRailDirectionIndex(railway["odpt:ascendingRailDirection"]);
   railway["odpt:descendingRailDirection"] && getRailDirectionIndex(railway["odpt:descendingRailDirection"]);
 
+  
+
+  // for (const trainTypeID of trainTypeIDs) {
   const trainTypeIDs: string[] = [];
+  const trainTypes: template_Odpt_TrainType[] = await getTrainTypeByID(railway["odpt:operator"]);
+  trainTypes.map((trainType) => {
+    trainTypeIDs.push(trainType["owl:sameAs"]);
+    data.railway.trainTypes.push({
+      ...initial_trainType,
+      "name": trainType["dc:title"] ?? (trainType["odpt:trainTypeTitle"] ? trainType["odpt:trainTypeTitle"]["ja"] : ""),
+    });
+  });
+  
+  
   const getTrainTypeIndex = (trainTypeID: string): number => {
-    const trainTypeIndex: number = trainTypeIDs.findIndex((val) => val === trainTypeID);
-    if (trainTypeIndex === -1) {
-      trainTypeIDs.push(trainTypeID);
-      return 0;
-    }
-    return trainTypeIndex;
+    return trainTypeIDs.indexOf(trainTypeID);
   }
 
-  data.railway.diagrams = await setDiagrams(railway["owl:sameAs"], stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex);
+  data.railway.diagrams = await setDiagrams(railway["owl:sameAs"], stationIDs, setPlatform, getRailDirectionIndex, getTrainTypeIndex, railway);
 
   for (const railDirectionID of railDirectionIDs) {
     const railDirection: template_Odpt_RailDirection = await getRailDirectionByID(railDirectionID);
     data.railway.directionName.push(railDirection["dc:title"] ?? (railDirection["odpt:railDirectionTitle"] ? railDirection["odpt:railDirectionTitle"]["ja"] : ""));
   }
 
-  for (const trainTypeID of trainTypeIDs) {
-    const trainType: template_Odpt_TrainType = await getTrainTypeByID(trainTypeID);
-    data.railway.trainTypes.push({
-      ...initial_trainType,
-      "name": trainType["dc:title"] ?? (trainType["odpt:trainTypeTitle"] ? trainType["odpt:trainTypeTitle"]["ja"] : ""),
-    });
-  }
+
 
   data.railway.name = railway["dc:title"] ?? (railway["dc:railwayTitle"] ? railway["dc:railwayTitle"]["ja"] : "");
 
